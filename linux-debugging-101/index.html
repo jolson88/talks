@@ -49,8 +49,9 @@
 					</section>
 					<section>
 						<p>If P99.9 drops to 2 seconds of latency,</p>
-						<p>40 minutes of customer time per hour** wasted!</p>
+						<p><em>40 minutes of customer time per hour</em> wasted!</p>
 					</section>
+					<section>The Average Is A Lie!</section>
 				</section>
 				<section>
 					<section>Where do I even begin to look?</section>
@@ -84,7 +85,7 @@
 					<section>General OS health</section>
 					<section data-markdown>
 						<textarea data-template>
-							### Has the machine been generally reliable?
+							### Is the machine being reliable?
 							```
 							$> uptime
 							... up 7 days, 10:15, 0 users, load avg: 0.65, 0.47, 0.47
@@ -93,23 +94,30 @@
 					</section>
 					<section data-markdown>
 						<textarea data-template>
-							### Is the kernel reporting any problems?
+							### Problems from the kernel?
 							```
 							$> dmesg -T
-							TODO
+							[Thu Oct 25 20:52:48 2018] new mount options do not match...
+							[Thu Oct 25 20:52:49 2018] snd_intel8x0 0000:00:05.0:...
+							[Thu Oct 25 20:52:49 2018] snd_intel8x0 0000:00:05.0:...
+							[Thu Oct 25 20:52:49 2018] snd_intel8x0 0000:00:05.0:...
+							[Thu Oct 25 20:52:49 2018] vboxsf: Successfully loaded...
 							```
 						</textarea>
 					</section>
 					<section data-markdown>
 						<textarea data-template>
-							### Are services reporting any problems?
+							### Service problems?
 							```
 							$> sudo journalctl
-							TODO
+							Oct 25 20:55:31 . systemd[1]: Started User Manager...
+							Oct 25 20:55:31 . systemd[16585]: Reached target Default...
+							Oct 25 20:55:31 . systemd[16585]: Startup finished in 32ms...
+							Oct 25 21:00:03 . sudo[16676]:  vagrant : TTY=pts/0 ;...
+							Oct 25 21:00:03 . sudo[16676]: pam_unix(sudo:session)...
 							```
 							```
 							$> sudo journalctl -u TODO.service
-							TODO
 							```
 						</textarea>
 					</section>
@@ -118,15 +126,44 @@
 							### Are processes generally happy?
 							```
 							$> top
+							top - 21:17:43 up 25 min, load average: 0.00, 0.00, 0.03
+							Tasks:  90 total,   1 running,  46 sleeping,...
+							%Cpu(s):  0.3 us,  0.3 sy,  0.0 ni, 99.3 id,...
+							KiB Mem :  4039732 total,  2815360 free,...
+							KiB Swap:  1003516 total,  1003516 free,...
+
+							PID USER      ... RES    SHR S %CPU %MEM     TIME+ COMMAND
+								3 root          0      0 I  0.3  0.0   0:00.40 kworker
+							16664 vagrant    5068   3924 S  0.3  0.1   0:00.06 sshd
+							16716 vagrant    3736   3168 R  0.3  0.1   0:00.02 top
+								1 root       9080   6700 S  0.0  0.2   0:01.73 systemd
 							```
 						</textarea>
 					</section>
 				</section>
 				<section>
-					<section>Debugging on CoreOS</section>
-					<section>/usr/bin/toolbox</section>
-					<section>Installing common debugging tools</section>
-					<section>Finding other debugging tools</section>
+					<section>
+						<h2>Debugging on CoreOS</h2>
+						<p class="fragment">/usr/bin/toolbox</p>
+					</section>
+					<section data-markdown>
+						<textarea data-template>
+							## Installing common debugging tools
+							pidstat, iostat, vmstat, netstat, lsof, dig, etc.
+							```
+							$> dnf -y install sysstat procps-ng net-tools conntrack-tools
+							$> dnf -y install lsof bind-utils less
+							```
+						</textarea>
+					</section>
+					<section data-markdown>
+						<textarea data-template>
+							## Finding other debugging tools
+							```
+							$> dnf provides "*bin/vmstat"
+							```
+						</textarea>
+					</section>
 				</section>
 				<section>
 					<section>CPU</section>
@@ -145,26 +182,207 @@
 							04:03:48   0  10  0.00 0.00  0.00 0.00 migration/0
 							04:03:48   0  11  0.00 0.00  0.00 0.00 watchdog/0
 							```
+							https://linux.die.net/man/1/pidstat
+						</textarea>
+					</section>
+					<section>Understanding Limits</section>
+					<section data-markdown>
+						<textarea data-template>
+							## Example k8s limit config
+							```
+							resources:
+								requests:
+									memory: "256Mi"
+									cpu: "1000m"
+								limits:
+									memory: "512Mi"
+									cpu: "2000m"
+							```
+						</textarea>
+					</section>
+					<section>CGroups and Throttling</section>
+					<section data-markdown>
+						<textarea data-template>
+							## CPU CGroup translation of these limits
+							```
+							$> cd /sys/fs/cgroup
+							$> cat ./cpu/.../pod14.../cpu.cfs_period_us
+							100000
+							$> cat ./cpu/.../pod14.../cpu.cfs_quota_us
+							200000
+							```
 						</textarea>
 					</section>
 					<section data-markdown>
 						<textarea data-template>
-							## Understanding Limits
+							## Am I being throttled?
+							```
+							$> cd /sys/fs/cgroup
+							$> cat ./cpu/.../pod14.../cpu.stat
+							nr_periods 66707
+							nr_throttled 413
+							throttled_time 14955959165
+							```
+							<em>throttled_time is in nanoseconds</em>
+							<p>CFS Bandwidth Control (https://bit.ly/2cDtX5G)</p>
 						</textarea>
 					</section>
-					<section>Throttling and CGroups</section>
-					<section>TODO: Example - CPU and Memory limits in a k8s deployment config</section>
-					<section>CGroup translation of these limits</section>
-					<section>Am I being throttled?</section>
 				</section>
 				<section>
 					<section>Memory</section>
+					<section data-markdown>
+						<textarea data-template>
+							## Memory
+							```
+							$> free -m
+							total  used  free  shared  buff/cache   available
+							Mem:  31707  1615   17038         201       13053
+							Swap:     0     0       0
+							```
+							https://linux.die.net/man/1/free
+
+							```
+							$> vmstat
+							procs -----------memory----------  ---swap--
+							r  b swpd free     buff   cache    si   so
+							1  0    0 17461728 484416 12880172  0    0
+							```
+							https://linux.die.net/man/8/vmstat
+						</textarea>
+					</section>
 				</section>
 				<section>
 					<section>Network</section>
+					<section data-markdown>
+						<textarea data-template>
+							## Network
+							**sar** - System Activity Reporter
+							```
+							$> sar -n DEV 1
+							Linux 4.14.67-coreos (ip-172-16-23-17) _x86_64_	(4 CPU)
+
+							        IFACE  rxpck/s  txpck/s  rxkB/s  txkB/s  %ifutil
+							   cilium_net     0.00    27.00    0.00   16.83     0.00
+							  cilium_host    27.00     0.00   16.83    0.00     0.00
+							     lxc9819d     2.00     4.00    0.14    0.27     0.00
+							      docker0     0.00     0.00    0.00    0.00     0.00
+							cilium_health     0.00     0.00    0.00    0.00     0.00
+							     lxcf3e3c     2.00     1.00    0.13    0.06     0.00
+							         eth0   291.00   290.00  109.20   97.05     0.00
+							           lo     0.00     0.00    0.00    0.00     0.00
+							```
+							https://linux.die.net/man/1/sar
+						</textarea>
+					</section>
+					<section data-markdown>
+						<textarea data-template>
+							## Network
+							**sar** - System Activity Reporter
+							```
+							$> sar -n TCP,ETCP 1
+							Linux 4.14.67-coreos (ip-172-16-23-17) _x86_64_	(4 CPU)
+
+							04:24:50     active/s passive/s    iseg/s    oseg/s
+							04:24:51         1.00      0.00    166.00    101.00
+
+							04:24:50     atmptf/s  estres/s retrans/s isegerr/s
+							04:24:51         0.00      0.00      0.00      0.00
+							```
+							https://linux.die.net/man/1/sar
+						</textarea>
+					</section>
+					<section data-markdown>
+						<textarea data-template>
+							## Network
+							**dig** - DNS (Domain Information Groper)
+							```
+							$> dig +trace dynamodb.us-west-2.amazonaws.com
+							$> dig +trace us.api.concursolutions.com
+							```
+							https://linux.die.net/man/1/dig
+						</textarea>
+					</section>
 				</section>
 				<section>
 					<section>Disk</section>
+					<section data-markdown>
+						<textarea data-template>
+							## Disk
+							```
+							$> iostat -xz 1
+							Linux 3.13.0-49-generic 07/14/2015  _x86_64_ (32 CPU)
+
+							avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+							     	  73.96    0.00    3.73    0.03    0.06   22.21
+
+							Device:  r/s   w/s    rkB/s   wkB/s  avgqu-sz   await  %util
+							xvda     0.21  0.18    4.52    2.08      0.00    9.98   0.09
+							xvdb     1.02  8.94  127.97  598.53      0.00    0.43   0.25
+							xvdc     1.02  8.86  127.79  595.94      0.00    0.45   0.26
+							dm-0     0.69  2.32   10.47   31.69      0.01    3.23   0.04
+							dm-1     0.00  0.94    0.01    3.78      0.33  345.84   0.00
+							dm-2     0.09  0.07    1.35    0.36      0.00    2.55   0.03
+							```
+							https://linux.die.net/man/1/iostat
+						</textarea>
+					</section>
+					<section data-markdown>
+						<textarea data-template>
+							## File Handles
+							lsof (List Open Files)
+							```
+							$> lsof
+							systemd  1  root  2u      CHR  1,3   0t0  3075 /dev/null
+							systemd  1  root  3w      CHR  1,11  0t0  3081 /dev/kmsg
+							systemd  1  root  4u  a_inode  0,12    0  9775 [eventpoll]
+							systemd  1  root  5u  a_inode  0,12    0  9775 [signalfd]
+							```
+							```
+							$> lsof | wc -l
+							31212
+
+							$> cat /proc/sys/fs/file-max
+							```
+							https://linux.die.net/man/1/iostat
+						</textarea>
+					</section>
+				</section>
+				<section>
+					<h2>Other Tools</h2>
+					<ul>
+						<li>tcpdump</li>
+						<li>strace</li>
+						<li>ftrace</li>
+						<li>bcc tools (bpf)</li>
+						<li>bpftrace</li>
+					</ul>
+				</section>
+				<section>
+					<section>Forward Looking</section>
+					<section>
+						<h2>CPU Flame Graphs</h2>
+						<img src="img/cpu-flame-graph.png" />
+						http://www.brendangregg.com/FlameGraphs/cpuflamegraphs.html
+					</section>
+					<section>
+						<h2>Off-CPU Flame Graphs</h2>
+						<img src="img/off-cpu-flame-graph.png" />
+						http://www.brendangregg.com/FlameGraphs/offcpuflamegraphs.html
+					</section>
+					<section>
+						<h2>Latency Histograms</h2>
+						<img src="img/latency-histogram.png" />
+					</section>
+					<section>
+						<h2>Latency Heatmaps</h2>
+						<img src="img/latency-heatmap.png" />
+					</section>
+				</section>
+				<section>
+					<h2>Resources</h2>
+					<p>Systems Performance, by Brendan Gregg</p>
+					<p>Linux Performance Analysis in 60 seconds (https://bit.ly/2ApDEC7)</p>
+					<p>The USE Method (https://bit.ly/2fPGEut)</p>
 				</section>
 				<section>Thanks!</section>
 			</div>
