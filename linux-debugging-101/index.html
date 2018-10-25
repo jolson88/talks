@@ -4,7 +4,7 @@
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-		<title>reveal.js</title>
+		<title>Linux Debugging 101</title>
 
 		<link rel="stylesheet" href="css/reveal.css">
 		<link rel="stylesheet" href="css/theme/black.css">
@@ -24,8 +24,149 @@
 	<body>
 		<div class="reveal">
 			<div class="slides">
-				<section>Slide 1</section>
-				<section>Slide 2</section>
+				<section>Linux Debugging 101</section>
+				<section>
+					<section>What is a failure?</section>
+					<section>Explicit Failures vs. Implicit Failures</section>
+					<section>Implicit failures are hard to debug!</section>
+					<section>Common implicit failure: Slower latencies</section>
+					<section>
+						<h2>Understanding Percentiles</h2>
+						<p>
+							<div class="fragment fade-in-then-semi-out">P95: 5/100 requests are higher than given latency</div>
+						</p>
+						<p>
+							<div class="fragment fade-in-then-semi-out">P99: 1/100 requests are higher than given latency</div>
+						</p>
+						<p>
+							<div class="fragment fade-in-then-semi-out">P99.9: 1/1000 requests are higher than given latency</div>
+						</p>
+					</section>
+					<section>
+						<h2>P99.9 - A tail of 1/1000</h2>
+						<p class="fragment">Traffic: 20k requests per minute</p>
+						<p class="fragment">Impact: 20 customers per minute experience given latency or higher</p>
+					</section>
+					<section>
+						<p>If P99.9 drops to 2 seconds of latency,</p>
+						<p>40 minutes of customer time per hour** wasted!</p>
+					</section>
+				</section>
+				<section>
+					<section>Where do I even begin to look?</section>
+					<section>First, take a deep breath!</section>
+					<section>
+						<h2>Begin by asking questions</h2>
+						<p class="fragment">Is this impacting customers or is it a false alarm?</p>
+						<p class="fragment">Is the problem cluster-wide or on a specific k8s node?</p>
+						<p class="fragment">Are there any obvious saturation or errors?</p>
+						<p class="fragment">Is it a utilization problem that can't be seen with rolling averages?</p>
+						<p class="fragment">If a process is waiting on CPU time, why? Is it being throttled?</p>
+					</section>
+				</section>
+				<section>
+					<section>USE Methodology</section>
+					<section>
+						<h2>USE Definition</h2>
+						<p class="fragment"><em>U</em>tilization</p>
+						<p class="fragment"><em>S</em>aturation</p>
+						<p class="fragment"><em>E</em>rrors</p>
+					</section>
+					<section>
+						<h2>Four Major Resources</h2>
+						<p>Processor</p>
+						<p>Memory</p>
+						<p>Network</p>
+						<p>Disk</p>
+					</section>
+				</section>
+				<section>
+					<section>General OS health</section>
+					<section data-markdown>
+						<textarea data-template>
+							### Has the machine been generally reliable?
+							```
+							$> uptime
+							... up 7 days, 10:15, 0 users, load avg: 0.65, 0.47, 0.47
+							```
+						</textarea>
+					</section>
+					<section data-markdown>
+						<textarea data-template>
+							### Is the kernel reporting any problems?
+							```
+							$> dmesg -T
+							TODO
+							```
+						</textarea>
+					</section>
+					<section data-markdown>
+						<textarea data-template>
+							### Are services reporting any problems?
+							```
+							$> sudo journalctl
+							TODO
+							```
+							```
+							$> sudo journalctl -u TODO.service
+							TODO
+							```
+						</textarea>
+					</section>
+					<section data-markdown>
+						<textarea data-template>
+							### Are processes generally happy?
+							```
+							$> top
+							```
+						</textarea>
+					</section>
+				</section>
+				<section>
+					<section>Debugging on CoreOS</section>
+					<section>/usr/bin/toolbox</section>
+					<section>Installing common debugging tools</section>
+					<section>Finding other debugging tools</section>
+				</section>
+				<section>
+					<section>CPU</section>
+					<section data-markdown>
+						<textarea data-template>
+							## CPU
+							```
+							$> pidstat 1
+							Linux 4.14.67-coreos 10/18/18 _x86_64_ (4 CPU)
+
+							04:03:48 UID PID  %usr %sys %wait %CPU Command
+							04:03:48   0   1  0.00 0.00  0.00 0.00 systemd
+							04:03:48   0   2  0.00 0.00  0.00 0.00 kthreadd
+							04:03:48   0   7  0.00 0.01  0.01 0.01 ksoftirqd/0
+							04:03:48   0   8  0.00 0.05  0.07 0.05 rcu_sched
+							04:03:48   0  10  0.00 0.00  0.00 0.00 migration/0
+							04:03:48   0  11  0.00 0.00  0.00 0.00 watchdog/0
+							```
+						</textarea>
+					</section>
+					<section data-markdown>
+						<textarea data-template>
+							## Understanding Limits
+						</textarea>
+					</section>
+					<section>Throttling and CGroups</section>
+					<section>TODO: Example - CPU and Memory limits in a k8s deployment config</section>
+					<section>CGroup translation of these limits</section>
+					<section>Am I being throttled?</section>
+				</section>
+				<section>
+					<section>Memory</section>
+				</section>
+				<section>
+					<section>Network</section>
+				</section>
+				<section>
+					<section>Disk</section>
+				</section>
+				<section>Thanks!</section>
 			</div>
 		</div>
 
